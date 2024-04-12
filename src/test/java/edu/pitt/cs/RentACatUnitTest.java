@@ -12,6 +12,7 @@ import static org.mockito.Mockito.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.lang.reflect.Method;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class RentACatUnitTest {
@@ -41,25 +42,25 @@ public class RentACatUnitTest {
 		// Passing InstanceType.IMPL as the first parameter will create a real RentACat object using your RentACatImpl implementation.
 		// Passing InstanceType.MOCK as the first parameter will create a mock RentACat object using Mockito.
 		// Which type is the correct choice for this unit test?  I'll leave it up to you.  The answer is in the Unit Testing Part 2 lecture. :)
-		r = RentACat.createInstance(InstanceType.MOCK);
+		r = RentACat.createInstance(InstanceType.IMPL);
 
 		// 2. Create a Cat with ID 1 and name "Jennyanydots", assign to c1 using a call to Cat.createInstance(InstanceType, int, String).
 		// Passing InstanceType.IMPL as the first parameter will create a real cat using your CatImpl implementation.
 		// Passing InstanceType.MOCK as the first parameter will create a mock cat using Mockito.
 		// Which type is the correct choice for this unit test?  Again, I'll leave it up to you.
-		c1 = Cat.createInstance(InstanceType.IMPL, 1, "Jennyanydots");
+		c1 = Cat.createInstance(InstanceType.MOCK, 1, "Jennyanydots");
 
 		// 3. Create a Cat with ID 2 and name "Old Deuteronomy", assign to c2 using a call to Cat.createInstance(InstanceType, int, String).
-		c2 = Cat.createInstance(InstanceType.IMPL, 2, "Old Deuteronomy");
+		c2 = Cat.createInstance(InstanceType.MOCK, 2, "Old Deuteronomy");
 
 		// 4. Create a Cat with ID 3 and name "Mistoffelees", assign to c3 using a call to Cat.createInstance(InstanceType, int, String).
-		c3 = Cat.createInstance(InstanceType.IMPL, 3, "Mistoffelees");
+		c3 = Cat.createInstance(InstanceType.MOCK, 3, "Mistoffelees");
 
 		// 5. Redirect system output from stdout to the "out" stream
 		// First, make a back up of System.out (which is the stdout to the console)
 		stdout = System.out;
 		// Second, update System.out to the PrintStream created from "out"
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		out = new ByteArrayOutputStream();
 		System.setOut(new PrintStream(out));
 	}
 
@@ -93,8 +94,6 @@ public class RentACatUnitTest {
 	 */
 	@Test
 	public void testGetCatNullNumCats0() {
-	//	Method m = r.getClass().getDeclaredMethod("getCat", int.class);
-	//	m.setAccessible(true);
 	}
 
 	/**
@@ -114,8 +113,21 @@ public class RentACatUnitTest {
 	 */
 	@Test
 	public void testGetCatNumCats3() {
-	//	Method m = r.getClass().getDeclaredMethod("getCat", int.class);
-	//	m.setAccessible(true);
+		r.addCat(c1);
+		r.addCat(c2);
+		r.addCat(c3);
+		try{
+			Method getCat = r.getClass().getDeclaredMethod("getCat", int.class);
+			getCat.setAccessible(true);
+			Object ret = getCat.invoke(r, 2);
+			Mockito.verify(c2).getId();
+			assertNotNull(ret);
+			Cat cat = (Cat) ret; // Implemented this because I wanted a clean slate when testing
+			assertEquals(2, cat.getId());
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail();
+		}
 	}
 
 	/**
@@ -129,7 +141,8 @@ public class RentACatUnitTest {
 	 */
 	@Test
 	public void testListCatsNumCats0() {
-		String ret = r.listCats();
+		Object ret = r.listCats();
+		assertEquals("", ret);
 	}
 
 	/**
@@ -144,7 +157,19 @@ public class RentACatUnitTest {
 	 */
 	@Test
 	public void testListCatsNumCats3() {
-		String ret = r.listCats();
+		r.addCat(c1);
+		r.addCat(c2);
+		r.addCat(c3);
+
+		Mockito.when(c1.getRented()).thenReturn(false);
+		Mockito.when(c2.getRented()).thenReturn(false);
+		Mockito.when(c3.getRented()).thenReturn(false);
+
+		assertEquals("ID 1. Jennyanydots\nID 2. Old Deuteronomy\nID 3. Mistoffelees\n", r.listCats());
+
+		Mockito.verify(c1).getRented();
+		Mockito.verify(c2).getRented();
+		Mockito.verify(c3).getRented();
 
 	}
 
@@ -165,7 +190,9 @@ public class RentACatUnitTest {
 	 */
 	@Test
 	public void testRenameFailureNumCats0() {
-		// TODO: Fill in
+		assertFalse(r.renameCat(2, "Garfield"));
+		assertEquals("Invalid cat ID.\n", out.toString());
+		assertNotEquals("Garfield", c2.getName());
 	}
 
 	/**
@@ -184,7 +211,12 @@ public class RentACatUnitTest {
 	 */
 	@Test
 	public void testRenameNumCat3() {
-		// TODO: Fill in
+		r.addCat(c1);
+		r.addCat(c2); 
+		r.addCat(c3);
+
+		assertTrue(r.renameCat(2, "Garfield"));
+		Mockito.verify(c2).renameCat("Garfield");
 	}
 
 	/**
